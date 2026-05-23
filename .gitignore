@@ -70,3 +70,6 @@
 
 # clang-tidy output
 /clang-tidy-fixes.patch
+
+# Doxygen output
+/doxygen
