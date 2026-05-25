@@ -15,7 +15,7 @@ set(HAL_INTERFACE_HEADERS
   ${CMAKE_CURRENT_SOURCE_DIR}/include/hal_interface/pwm.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/hal_interface/serial.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/hal_interface/software_timer.hpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/hal_interface/spi.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/hal_interface/spi_controller.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/hal_interface/timer.hpp
 )
 

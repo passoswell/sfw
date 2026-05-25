@@ -1,11 +1,12 @@
 // Copyright (c) 2026 sfw contributors. All rights reserved.
 
-#ifndef HAL_INTERFACE_SPI_HPP
-#define HAL_INTERFACE_SPI_HPP
+#ifndef HAL_INTERFACE_SPI_CONTROLLER_HPP
+#define HAL_INTERFACE_SPI_CONTROLLER_HPP
 
 #include <cstdint>
 #include <span>
 
+#include "hal_interface/digital_output.hpp"
 #include "hal_interface/error_code.hpp"
 
 namespace sfw::hal_interface {
@@ -18,11 +19,13 @@ namespace sfw::hal_interface {
  * Register-addressed helpers are available for targets such as memory ICs.
  * An SPI controller is the peripheral/device responsible for driving the
  * chip select signals in the bus, while the targets are the devices selected.
- * The chip-select signal management and clock/mode configuration are assumed
+ * The clock/mode configuration, bus frequency and other parameters are assumed
  * to be handled by the concrete implementation. These parameters may be set
  * through the constructor of the implementation class.
  * All the methods on this interface are synchronous / blocking. This means
  * they only return if the operation is finished or if an error occurred.
+ * SPI mode 0 corresponds to CPOL=0 and CPHA=0, mode 1 to CPOL=0 and CPHA=1,
+ * mode 2 to CPOL=1 and CPHA=0, and mode 3 to CPOL=1 and CPHA=1.
  *
  * Typical usage:
  * 1. Call Initialize() once to configure the SPI hardware. The parameters,
@@ -88,6 +91,8 @@ class SpiController {
    * 0x00 or 0xFF), captures the simultaneously received bytes into @p buffer,
    * and de-asserts the chip-select.
    *
+   * @param[in]  cs_pin        Chip-select pin to use for the transaction.
+   * @param[in]  active_state  Active state of the chip-select pin.
    * @param[out] buffer     Destination span that receives the read bytes.
    * @param[in]  timeout_ms Maximum time to wait for the transfer, in
    * milliseconds.
@@ -95,7 +100,8 @@ class SpiController {
    * @retval ErrorCode::kTimeout The transfer did not complete within
    * @p timeout_ms.
    */
-  virtual ErrorCode Read(std::span<uint8_t> buffer, uint32_t timeout_ms) = 0;
+  virtual ErrorCode Read(DigitalOutput& cs_pin, bool active_state,
+                         std::span<uint8_t> buffer, uint32_t timeout_ms) = 0;
 
   /**
    * @brief Writes bytes from @p buffer to the SPI bus, discarding
@@ -104,6 +110,8 @@ class SpiController {
    * Asserts the chip-select, clocks out all bytes in @p buffer, discards the
    * simultaneously received bytes, and de-asserts the chip-select.
    *
+   * @param[in] cs_pin        Chip-select pin to use for the transaction.
+   * @param[in] active_state  Active state of the chip-select pin.
    * @param[in] buffer     Source span containing the bytes to transmit.
    * @param[in] timeout_ms Maximum time to wait for the transfer, in
    * milliseconds.
@@ -111,7 +119,8 @@ class SpiController {
    * @retval ErrorCode::kTimeout The transfer did not complete within
    * @p timeout_ms.
    */
-  virtual ErrorCode Write(std::span<const uint8_t> buffer,
+  virtual ErrorCode Write(DigitalOutput& cs_pin, bool active_state,
+                          std::span<const uint8_t> buffer,
                           uint32_t timeout_ms) = 0;
 
   /**
@@ -122,6 +131,8 @@ class SpiController {
    * is commonly used to send a command or address and then receive the
    * device's response.
    *
+   * @param[in]  cs_pin        Chip-select pin to use for the transaction.
+   * @param[in]  active_state  Active state of the chip-select pin.
    * @param[in]  write_buffer Source span containing the bytes to transmit.
    * @param[out] read_buffer  Destination span that receives the bytes read
    * after the write.
@@ -131,7 +142,8 @@ class SpiController {
    * @retval ErrorCode::kTimeout The transfer did not complete within
    * @p timeout_ms.
    */
-  virtual ErrorCode WriteThenRead(std::span<const uint8_t> write_buffer,
+  virtual ErrorCode WriteThenRead(DigitalOutput& cs_pin, bool active_state,
+                                  std::span<const uint8_t> write_buffer,
                                   std::span<uint8_t> read_buffer,
                                   uint32_t timeout_ms) = 0;
 
@@ -142,6 +154,8 @@ class SpiController {
    * clock cycle, one byte from @p write_buffer is transmitted while the
    * received byte is stored in the corresponding position of @p read_buffer.
    *
+   * @param[in]  cs_pin        Chip-select pin to use for the transaction.
+   * @param[in]  active_state  Active state of the chip-select pin.
    * @param[in]  write_buffer Source span containing the bytes to transmit.
    * @param[out] read_buffer  Destination span that receives the simultaneously
    * captured bytes.
@@ -152,7 +166,8 @@ class SpiController {
    * @retval ErrorCode::kTimeout The transfer did not complete within @p
    * timeout_ms.
    */
-  virtual ErrorCode Transfer(std::span<const uint8_t> write_buffer,
+  virtual ErrorCode Transfer(DigitalOutput& cs_pin, bool active_state,
+                             std::span<const uint8_t> write_buffer,
                              std::span<uint8_t> read_buffer,
                              uint32_t timeout_ms) = 0;
 
@@ -162,6 +177,8 @@ class SpiController {
    * Transmits the register address (@p register_size_bytes wide),
    * then reads @p buffer.size() bytes in a single chip-select assertion.
    *
+   * @param[in]  cs_pin        Chip-select pin to use for the transaction.
+   * @param[in]  active_state  Active state of the chip-select pin.
    * @param[in]  register_address    Register address to read from.
    * @param[in]  register_size_bytes Width of the register address field in
    * bytes (1–4).
@@ -173,7 +190,8 @@ class SpiController {
    * @retval ErrorCode::kTimeout The transaction did not complete within @p
    * timeout_ms.
    */
-  virtual ErrorCode ReadRegister(uint32_t register_address,
+  virtual ErrorCode ReadRegister(DigitalOutput& cs_pin, bool active_state,
+                                 uint32_t register_address,
                                  uint8_t register_size_bytes,
                                  std::span<uint8_t> buffer,
                                  uint32_t timeout_ms) = 0;
@@ -184,6 +202,8 @@ class SpiController {
    * Transmits the register address (@p register_size_bytes wide)
    * followed by all bytes in @p buffer in a single chip-select assertion.
    *
+   * @param[in] cs_pin        Chip-select pin to use for the transaction.
+   * @param[in] active_state  Active state of the chip-select pin.
    * @param[in] register_address    Register address to write to.
    * @param[in] register_size_bytes Width of the register address field in bytes
    * (1–4).
@@ -194,12 +214,16 @@ class SpiController {
    * @retval ErrorCode::kTimeout The transaction did not complete within @p
    * timeout_ms.
    */
-  virtual ErrorCode WriteRegister(uint32_t register_address,
+  virtual ErrorCode WriteRegister(DigitalOutput& cs_pin, bool active_state,
+                                  uint32_t register_address,
                                   uint8_t register_size_bytes,
                                   std::span<const uint8_t> buffer,
                                   uint32_t timeout_ms) = 0;
+
+  static constexpr uint8_t kMinRegAddressSize{1};
+  static constexpr uint8_t kMaxRegAddressSize{4};
 };
 
 }  // namespace sfw::hal_interface
 
-#endif  // HAL_INTERFACE_SPI_HPP
+#endif  // HAL_INTERFACE_SPI_CONTROLLER_HPP
