@@ -45,17 +45,23 @@ struct MemoryMetadata {
  * Supports random-access read, page/word write, and block or full-chip erase
  * operations. Callers should consult GetMetadata() to understand alignment
  * requirements, erase granularity, and whether an erase is required before
- * programming.
+ * writing.
  * All the methods on this interface are synchronous / blocking. This means
  * they only return if the operation is finished or if an error occurred.
+ * The structure returned by GetMetadata() is intended to be used for
+ * configuring the best parameters, such as timeout values, write/read size
+ * and alignment limits, for the memory being interfaced. Some memories feature
+ * these parameters internally and accessible through one or more instructions.
+ * In this case, the implementation of this interface can get the necessary
+ * information from the device and populate the metadata structure.
  *
  * Typical usage:
  * 1. Call Initialize() once to configure the memory peripheral and underlying
  * buses.
  * 2. Call GetMetadata() to retrieve memory info and timing requirements.
  * 3. Call EraseBlock() or EraseAllMemory() if the memory requires erase before
- * program.
- * 4. Call Write() to program data into the erased regions.
+ * writing.
+ * 4. Call Write() to write data into the erased regions.
  * 5. Call Read() to retrieve data from any valid memory address.
  * 6. Call Deinitialize() when access is no longer needed.
  */
@@ -112,6 +118,9 @@ class Memory {
    * If @p buffer.size() is greater than read_block_size in MemoryMetadata, the
    * implementation must split the read into multiple instructions in a
    * transparent way.
+   * For the caller, @p start_address always starts from zero, a relative
+   * address. The implementation is responsible for adding the base_address
+   * offset from MemoryMetadata::base_address.
    *
    * @param[in]  start_address Byte address within the memory to begin reading
    * from.
@@ -139,6 +148,9 @@ class Memory {
    * MemoryMetadata::write_alignment and MemoryMetadata::write_block_size,
    * respectively, the implementation must split the write into multiple
    * instructions in a transparent way.
+   * For the caller, @p start_address always starts from zero, a relative
+   * address. The implementation is responsible for adding the base_address
+   * offset from MemoryMetadata::base_address.
    *
    * @param[in] start_address Byte address within the memory to begin writing
    * to.
