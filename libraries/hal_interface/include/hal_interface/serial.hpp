@@ -169,8 +169,7 @@ class Serial {
    * Write() should block until the hardware has completed the transmission of
    * all bytes, or if it should return as soon as the bytes have been accepted
    * into an internal buffer.
-   * If this parameter is not configurable, the implementation must document the
-   * implemented behavior.
+   * If this parameter is not configurable, the implementation must block.
    * If the implementation uses an internal buffer, it must have the means to
    * complete the transmission even after Write() returns. In the case the
    * internal buffer is not large enough to hold all bytes passed to Write(),
@@ -197,9 +196,9 @@ class Serial {
    * The implementation may accept a constructor parameter defining if a call to
    * Write() should block until the hardware has completed the transmission of
    * all bytes, or if it should return as soon as the bytes have been accepted
-   * into an internal buffer.
-   * If this parameter is not configurable, the implementation must document the
-   * implemented behavior.
+   * into an internal buffer. This parameter must default to a blocking
+   * behavior.
+   * If this parameter is not configurable, the implementation must block.
    * If the implementation uses an internal buffer, it must have the means to
    * complete the transmission even after Write() returns. In the case the
    * internal buffer is not large enough to hold all bytes passed to Write(),

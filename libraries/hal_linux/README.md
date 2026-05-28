@@ -32,6 +32,8 @@ where peripheral access is available through device nodes such as `/dev/i2c-*`,
 - Software timer via `std::chrono`:
   - `include/hal_linux/software_timer/chrono_software_timer.hpp`
   - [Module README](libraries/hal_linux/include/hal_linux/software_timer/README.md)
+- STDIO serial backend via stdin/stdout:
+  - `include/hal_linux/stdio/stdio_serial.hpp`
 - UART serial via termios:
   - `include/hal_linux/uart/uart_serial.hpp`
   - [Module README](libraries/hal_linux/include/hal_linux/uart/README.md)

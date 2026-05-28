@@ -18,6 +18,7 @@ set(HAL_LINUX_HEADERS
   ${CMAKE_CURRENT_SOURCE_DIR}/include/hal_linux/dio/digital_output.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/hal_linux/i2c/i2c_controller.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/hal_linux/spi/spi_controller.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/hal_linux/stdio/stdio_serial.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/hal_linux/software_timer/chrono_software_timer.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/hal_linux/uart/uart_serial.hpp
 )
@@ -27,6 +28,7 @@ set(HAL_LINUX_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/digital_output.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/i2c_controller.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/spi_controller.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/stdio_serial.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/chrono_software_timer.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/uart_serial.cpp
 )

@@ -46,15 +46,16 @@ class UartSerial final : public hal_interface::Serial {
    * @param[in] device    Path to the tty device (e.g. "/dev/ttyUSB0").
    * @param[in] baud_rate Desired baud rate (e.g. 9600, 115200).
    * @param[in] wait_end_of_transmission If true, Write() will block until the
-   * hardware has completed the transmission of all bytes. If false, Write()
-   * will return as soon as the bytes have been accepted into the kernel buffer.
+   * hardware has completed transmission of all bytes through the wire. If
+   * false, Write() will return as soon as the bytes have been accepted into the
+   * kernel buffer. Defaults to true.
    * @param[in] flow_control Flow control setting (default: none).
    * @param[in] data_bits Number of data bits per frame (default: 8).
    * @param[in] parity    Parity mode (default: none).
    * @param[in] stop_bits Number of stop bits per frame (default: 1).
    */
   explicit UartSerial(std::string device, uint32_t baud_rate,
-                      bool wait_end_of_transmission,
+                      bool wait_end_of_transmission = true,
                       hal_interface::Serial::FlowControl flow_control =
                           hal_interface::Serial::FlowControl::kNone,
                       hal_interface::Serial::DataBits data_bits =
@@ -150,17 +151,18 @@ class UartSerial final : public hal_interface::Serial {
    * This method calls the write() syscall, which copies bytes from @p buffer to
    * the kernel transmit buffer. If the parameter wait_end_of_transmission_ set
    * through the constructor is true, Write() will block until the hardware has
-   * completed the transmission of all bytes. If false, Write() will return as
-   * soon as the bytes have been accepted into the kernel buffer.
-   * The data may not be fully copied / transmitted by the time  Write()
-   * returns, in which case ErrorCode::kTimeout will be returned.
+   * completed transmission of all bytes through the wire. If false, Write()
+   * will return as soon as the bytes have been accepted into the kernel buffer.
+   * The data may not be fully transmitted by the time Write() returns, in
+   * which case ErrorCode::kTimeout will be returned.
    *
    * @param[in] buffer     Source span of bytes to transmit.
    * @param[in] timeout_ms Maximum wait time in milliseconds.
-   * @retval ErrorCode::kOk      All bytes were copied to an internal buffer /
+   * @retval ErrorCode::kOk      All bytes were copied and, if requested,
    * transmitted successfully.
    * @retval ErrorCode::kTimeout The copy / transmission did not complete within
-   * @retval ErrorCode::kError   write() failed.
+   * @p timeout_ms.
+   * @retval ErrorCode::kError   write() or transmit drain failed.
    */
   hal_interface::ErrorCode Write(std::span<const uint8_t> buffer,
                                  uint32_t timeout_ms) override;
