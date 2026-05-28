@@ -23,7 +23,7 @@ namespace sfw::hal_linux {
  * firmware, device tree, or kernel driver. Thus, it cannot be configured at
  * the user space level.
  *
- * Include path: `#include <hal_linux/i2c/i2c_controller.hpp>`
+ * Include path: `#include "hal_linux/i2c/i2c_controller.hpp`
  *
  * Typical usage:
  * 1. Construct I2cController with a Linux I2C device path (for example,

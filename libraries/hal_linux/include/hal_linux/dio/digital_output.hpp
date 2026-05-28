@@ -24,7 +24,15 @@ namespace sfw::hal_linux {
  * The implementation opens a DIO chip by name and then requests the line
  * offset provided in the constructor.
  *
- * Include path: `#include <hal_linux/dio/digital_output.hpp>`
+ * While libgpiod supports all line drive and line bias options, not all
+ * gpiochips may have the necessary hardware to implement them. However, this
+ * implementation will accept all possible configurations unconditionally.
+ * Since libgpiod does not provide a way to query the hardware capabilities,
+ * nor will it necessarily return an error if the requested drive or bias is
+ * unsupported, please refer to your platform or adapter's documentation prior
+ * to using this driver.
+ *
+ * Include path: `#include "hal_linux/dio/digital_output.hpp`
  *
  * Typical usage:
  * 1. Construct DigitalOutput with a line offset and optional initial state.
@@ -38,6 +46,11 @@ class DigitalOutput final : public hal_interface::DigitalOutput {
   /**
    * @brief Constructs a Linux digital output.
    *
+   * Line drive and line bias options are platform dependent. Since there is no
+   * way to query capabilities, nor will libgpiod return an error, this
+   * implementation will accept all configuration combinations. Please refer to
+   * your platform or adapter's documentation prior to using this driver.
+   *
    * @param[in] device Name of the DIO chip (e.g. "/dev/gpiochip0").
    * @param[in] line_offset Line offset within the chip to control.
    * @param[in] initial_state Initial logical level to drive after
@@ -50,7 +63,7 @@ class DigitalOutput final : public hal_interface::DigitalOutput {
                          hal_interface::DigitalOutput::LineDrive line_drive =
                              hal_interface::DigitalOutput::LineDrive::kPushPull,
                          hal_interface::DigitalOutput::LineBias line_bias =
-                             hal_interface::DigitalOutput::LineBias::kDisable);
+                             hal_interface::DigitalOutput::LineBias::kNone);
 
   /**
    * @brief Destructor
@@ -67,6 +80,11 @@ class DigitalOutput final : public hal_interface::DigitalOutput {
    *
    * Opens the desired chip, acquire the line offset, and request it as output
    * with the desired initial state. Must be called before Write() and Toggle().
+   *
+   * Line drive and line bias options are platform dependent. Since there is no
+   * way to query capabilities, nor will libgpiod return an error, this
+   * implementation will accept all configuration combinations. Please refer to
+   * your platform or adapter's documentation prior to using this driver.
    *
    * @retval ErrorCode::kOk    DIO is ready for output operations.
    * @retval ErrorCode::kError One or more libgpiod operations failed.

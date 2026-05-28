@@ -24,6 +24,7 @@ enum class DioEventType : uint8_t {
  *
  * All the methods on this interface are synchronous / blocking. This means
  * they only return if the operation is finished or if an error occurred.
+ * Note that not all platforms may support all line bias configurations.
  *
  * Typical usage:
  * 1. Call Initialize() once to configure the GPIO pin as an input.
@@ -32,6 +33,15 @@ enum class DioEventType : uint8_t {
  */
 class DigitalInput {
  public:
+  /**
+   * @brief Internal bias mode for the requested DIO line.
+   */
+  enum class LineBias : uint8_t {
+    kNone = 0,
+    kPullDown,
+    kPullUp,
+  };
+
   DigitalInput() = default;
   DigitalInput(const DigitalInput&) = default;
   DigitalInput& operator=(const DigitalInput&) = default;
@@ -48,6 +58,8 @@ class DigitalInput {
    *
    * Configures the underlying GPIO pin as an input and prepares the
    * event-capture mechanism. Must be called before any other method.
+   * If any configuration option informed through the implementation's
+   * constructor is not supported, this method must return an error.
    *
    * @retval ErrorCode::kOk    Initialization succeeded.
    * @retval ErrorCode::kError Initialization failed due to a hardware fault.

@@ -26,7 +26,7 @@ int GetDriveFlags(hal_interface::DigitalOutput::LineDrive line_drive) {
 
 int GetBiasFlags(hal_interface::DigitalOutput::LineBias line_bias) {
   switch (line_bias) {
-    case hal_interface::DigitalOutput::LineBias::kDisable:
+    case hal_interface::DigitalOutput::LineBias::kNone:
       return GPIOD_LINE_REQUEST_FLAG_BIAS_DISABLE;
     case hal_interface::DigitalOutput::LineBias::kPullDown:
       return GPIOD_LINE_REQUEST_FLAG_BIAS_PULL_DOWN;

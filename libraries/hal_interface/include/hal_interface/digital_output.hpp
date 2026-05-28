@@ -16,6 +16,8 @@ namespace sfw::hal_interface {
  * open-drain output and to control its logical level.
  * All the methods on this interface are synchronous / blocking. This means
  * they only return if the operation is finished or if an error occurred.
+ * Note that not all platforms may support all line drive and line bias
+ * configurations.
  *
  * Typical usage:
  * 1. Call Initialize() once to configure the DIO pin as an output.
@@ -38,8 +40,7 @@ class DigitalOutput {
    * @brief Internal bias mode for the requested DIO line.
    */
   enum class LineBias : uint8_t {
-    kAsIs = 0,
-    kDisable,
+    kNone = 0,
     kPullDown,
     kPullUp,
   };
@@ -62,6 +63,8 @@ class DigitalOutput {
    * after initialization is implementation-defined and may be specified on the
    * constructor of the concrete implementation. Must be called before Write()
    * or Toggle().
+   * If any configuration option informed through the implementation's
+   * constructor is not supported, this method must return an error.
    *
    * @retval ErrorCode::kOk    Initialization succeeded.
    * @retval ErrorCode::kError Initialization failed due to a hardware fault.

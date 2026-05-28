@@ -21,7 +21,7 @@ namespace sfw::hal_linux {
  * are buffered by the kernel; BytesAvailable() queries the kernel buffer
  * via ioctl(FIONREAD).
  *
- * Include path: `#include <hal_linux/uart/uart_serial.hpp>`
+ * Include path: `#include "hal_linux/uart/uart_serial.hpp`
  *
  * Typical usage:
  * 1. Construct a UartSerial with the device path and desired settings,
