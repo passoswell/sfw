@@ -6,7 +6,9 @@ add_subdirectory(include/device/hd44780)
 add_subdirectory(include/device/pcf8574)
 add_subdirectory(include/device/w25q80)
 add_subdirectory(include/device/jedec_flash)
+add_subdirectory(include/device/serial_eeprom)
 
 # Collect all targets under include/device
 add_library(device INTERFACE)
-target_link_libraries(device INTERFACE hd44780 pcf8574 w25q80 jedec_spi_flash)
+target_link_libraries(device INTERFACE hd44780 pcf8574 w25q80
+	jedec_spi_flash serial_eeprom)

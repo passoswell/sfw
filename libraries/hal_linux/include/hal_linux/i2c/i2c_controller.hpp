@@ -117,6 +117,11 @@ class I2cController final : public hal_interface::I2cController {
    * Uses the Linux I2C_RDWR ioctl to execute a combined transaction with a
    * repeated START between write and read phases.
    *
+   * Implementation details: for small reads this method uses a single
+   * I2C_RDWR combined transaction. For larger reads, it falls back to a
+   * Write() call followed by a Read() call to avoid adapter-specific faults
+   * observed with larger combined-read transactions.
+   *
    * @param[in] target_address 7-bit or 10-bit I2C target address.
    * @param[in] is_10bit_address Whether the target address is 10-bit (true) or
    * 7-bit (false).

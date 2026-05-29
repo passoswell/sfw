@@ -31,6 +31,7 @@ constexpr uint16_t kMax7BitAddress = 0x7FU;
 constexpr uint8_t kMinRegisterAddressSizeBytes = 1U;
 constexpr uint8_t kMaxRegisterAddressSizeBytes = 4U;
 constexpr uint32_t kMsPerI2CTimeoutTick = 10U;
+constexpr std::size_t kMaxSafeCombinedReadBytes = 4U;
 
 std::array<uint8_t, kMaxRegisterAddressSizeBytes> EncodeRegisterAddress(
     uint32_t register_address, uint8_t register_size_bytes) {
@@ -149,9 +150,23 @@ hal_interface::ErrorCode I2cController::WriteThenRead(
     return hal_interface::ErrorCode::kError;
   }
 
+  if (SelectTarget(target_address, is_10bit_address)
+      != hal_interface::ErrorCode::kOk) {
+    return hal_interface::ErrorCode::kError;
+  }
+
   if (ConfigureTransactionTimeout(timeout_ms)
       != hal_interface::ErrorCode::kOk) {
     return hal_interface::ErrorCode::kError;
+  }
+
+  if (read_buffer.size() > kMaxSafeCombinedReadBytes) {
+    hal_interface::ErrorCode result =
+        Write(target_address, is_10bit_address, write_buffer, timeout_ms);
+    if (result != hal_interface::ErrorCode::kOk) {
+      return result;
+    }
+    return Read(target_address, is_10bit_address, read_buffer, timeout_ms);
   }
 
   std::array<i2c_msg, 2U> messages{};

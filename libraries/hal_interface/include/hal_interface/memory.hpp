@@ -16,6 +16,8 @@ namespace sfw::hal_interface {
 struct MemoryMetadata {
   uint64_t base_address;  ///< First addressable byte of the memory region.
   uint64_t size_bytes;    ///< Total capacity of the memory region in bytes.
+  uint8_t
+      address_size_bytes;  ///< Number of bytes used to encode memory addresses.
   uint32_t write_unit;  ///< Smallest number of bytes that can be written in one
                         ///< operation.
   uint32_t read_block_size;   ///< Maximum number of bytes that can be read in
