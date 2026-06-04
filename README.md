@@ -7,8 +7,7 @@ implementations, and device drivers.
 - [Overview](#overview)
 - [Repository layout](#repository-layout)
 - [Requirements](#requirements)
-- [Build and run](#build-and-run)
-- [Documentation map](#documentation-map)
+- [Platform guides](#platform-guides)
 - [Current status](#current-status)
 
 ## Overview
@@ -29,111 +28,60 @@ configurations.
 - `libraries/device`: device drivers (for example HD44780, PCF8574, JEDEC
   flash, W25Q80).
 - `cmake_presets`: CMake preset definitions.
-- `sfw.cpp`: executable entry point and integration examples.
 
 ## Requirements
-Minimum toolchain:
+Common build tools:
 - CMake 3.23+
 - Ninja
 - GCC and G++ with C++20 support
 - pkg-config
 
-Additional STM32 toolchain requirements:
-- `arm-none-eabi-gcc`
-- `arm-none-eabi-g++`
-- `arm-none-eabi-objcopy`
-- `arm-none-eabi-size`
-
-Linux packages typically required:
+Linux host packages typically required:
 - build-essential
 - libgpiod-dev (`>=1.0` and `<2.0`)
 - libi2c-dev
+
+STM32 host requirements:
+- `SM32 CubeMX`
+- `arm-none-eabi-gcc` (Probably comes with CubeMX)
+- `arm-none-eabi-g++` (Probably comes with CubeMX)
+- `arm-none-eabi-objcopy` (Probably comes with CubeMX)
+- `arm-none-eabi-size` (Probably comes with CubeMX)
+- `STM32_Programmer_CLI` (STM32CubeProgrammer)
+- `ST-LINK_gdbserver` (STM32CubeCLT or equivalent ST package)
+
+Optional STM32 tools:
+- `openocd` (for OpenOCD-based flash/debug workflows)
 
 Useful optional tools:
 - gpiod
 - i2c-tools
 - gdb
 
-## Build and run
-From the repository root:
+## Platform guides
+Top-level build flow is intentionally minimal. Platform-specific setup and run
+instructions are documented in the module READMEs:
 
-1. List available configure presets:
+- Linux setup, dependencies, and build/run:
+  [libraries/hal_linux/README.md](libraries/hal_linux/README.md)
+- STM32 setup, CubeMX integration, build/flash/debug:
+  [libraries/hal_stm32/README.md](libraries/hal_stm32/README.md)
+
+Common preset discovery command (from repository root):
 
 ```bash
 cmake --list-presets
 ```
 
-2. Configure one preset (recommended for development):
+Default preset families:
+- Linux: `linux-*`
+- STM32: `stm32-*`
 
-```bash
-cmake --preset linux-debug
-```
+Current default STM32 preset path points to:
+- `external/cubemx/generic`
 
-3. Build:
-
-```bash
-cmake --build --preset build-linux-debug
-```
-
-You can also build directly from the generated folder:
-
-```bash
-cmake --build build/linux-debug
-```
-
-STM32 scaffold:
-
-1. Generate a CubeMX CMake project for your target MCU with STM32CubeIDE.
-2. Place the generated project under
-  `external/cubemx/generic-stm32f401cx`, or override
-  `SFW_STM32_CUBEMX_DIR` in a preset or on the command line.
-  SFW reads STM32 compile definitions and target CPU/FPU flags directly from
-  the CubeMX-generated CMake files, so manual per-part updates in SFW CMake
-  are not required.
-3. Configure the STM32 preset:
-
-```bash
-cmake --preset stm32-debug
-```
-
-4. Build:
-
-```bash
-cmake --build --preset build-stm32-debug
-```
-
-The legacy preset `stm32f401cx-debug` is kept as a compatibility alias for the
-current default board path, but the generic `stm32-*` presets are now the
-recommended interface.
-
-The CubeMX linker helper supports both common generated layouts:
-- startup assembly under `Core/Startup`
-- startup assembly at project root (for example `startup_stm32f401xc.s`)
-
-Additional firmware artifacts are emitted beside the ELF during STM32 builds:
-- `sfw.hex`
-- `sfw.bin`
-- `sfw.map`
-
-If the required tools are available on the host, CMake also exposes optional
-flash targets for STM32CubeProgrammer and OpenOCD.
-
-The STM32 path expects CubeMX to own startup code, linker script, clock tree,
-GPIO configuration, and low-level peripheral initialization.
-
-Run the main executable:
-
-```bash
-./build/linux-debug/sfw
-```
-
-## Documentation map
-- HAL interfaces: [libraries/hal_interface/README.md](libraries/hal_interface/README.md)
-- Linux HAL implementations: [libraries/hal_linux/README.md](libraries/hal_linux/README.md)
-- STM32 HAL implementations: [libraries/hal_stm32/README.md](libraries/hal_stm32/README.md)
-- HD44780 driver: [libraries/device/include/device/hd44780/README.md](libraries/device/include/device/hd44780/README.md)
-- JEDEC flash driver: [libraries/device/include/device/jedec_flash/README.md](libraries/device/include/device/jedec_flash/README.md)
-- PCF8574 driver: [libraries/device/include/device/pcf8574/README.md](libraries/device/include/device/pcf8574/README.md)
+If you use a different CubeMX project location, override
+`SFW_STM32_CUBEMX_DIR` in a preset or on the command line.
 
 ## Current status
 Active development.

@@ -9,6 +9,7 @@
 - [Dependencies](#dependencies)
 - [Peripheral access on Linux](#peripheral-access-on-linux)
 - [Build](#build)
+- [Build and Debug in VS Code](#build-and-debug-in-vs-code)
 - [Notes](#notes)
 
 ## Overview
@@ -114,6 +115,33 @@ You can also build directly from the configure output directory:
 ```bash
 cmake --build build/linux-debug
 ```
+
+## Build and Debug in VS Code
+Required VS Code extensions:
+- CMake Tools (`ms-vscode.cmake-tools`)
+- C/C++ (`ms-vscode.cpptools`)
+
+Recommended extension:
+- C/C++ Extension Pack (`ms-vscode.cpptools-extension-pack`)
+
+Step-by-step (Linux target):
+1. Open the repository root in VS Code.
+2. Ensure host dependencies from [Dependencies](#dependencies) are installed.
+3. Open Command Palette and run `CMake: Select Configure Preset`, then choose
+   `linux-debug`.
+4. Run `CMake: Configure`.
+5. Run `CMake: Build` (or use the Build button from CMake Tools).
+6. Set launch target to `linux_tests` from the CMake status bar item.
+7. Use Run (without debugger) to start the binary.
+8. Use Debug to start a GDB debug session.
+
+Troubleshooting:
+- If configure fails, verify compilers, CMake, and Ninja are installed.
+- If debug does not start, verify `gdb` is installed and the selected preset is
+  a Linux preset.
+- If runtime access to `/dev/gpiochip*`, `/dev/i2c-*`, or `/dev/spidev*` fails,
+  revisit group membership and permissions in
+  [Peripheral access on Linux](#peripheral-access-on-linux).
 
 ## Notes
 - The `hal_linux` target is built in `libraries/hal_linux/CMakeLists.txt` and
