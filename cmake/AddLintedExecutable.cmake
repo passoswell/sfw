@@ -16,12 +16,18 @@ function(enable_target_clang_tidy TARGET_NAME)
         endforeach()
         list(APPEND CLANG_TIDY_EXTRA_ARGS "--extra-arg=-std=c++${CMAKE_CXX_STANDARD}")
 
+        set(SFW_CLANG_TIDY_HEADER_FILTER "^${CMAKE_SOURCE_DIR}/.*")
+        if(SFW_PLATFORM STREQUAL "STM32")
+            set(SFW_CLANG_TIDY_HEADER_FILTER
+                "^${CMAKE_SOURCE_DIR}/(apps|libraries)/.*")
+        endif()
+
         set(CLANG_TIDY_ARGS
             --fix
             --fix-errors
             --quiet
             --warnings-as-errors=*
-            --header-filter=^${CMAKE_SOURCE_DIR}/.*
+            --header-filter=${SFW_CLANG_TIDY_HEADER_FILTER}
             -p=${CMAKE_BINARY_DIR}
             ${ABS_SOURCES}
             ${CLANG_TIDY_EXTRA_ARGS})

@@ -1,0 +1,74 @@
+{
+  "version": 4,
+  "configurePresets": [
+    {
+      "name": "stm32-base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "toolchainFile": "${sourceDir}/cmake/toolchains/arm-none-eabi-gcc.cmake",
+      "cacheVariables": {
+        "SFW_PLATFORM": "STM32",
+        "CMAKE_BUILD_TYPE": "Debug",
+        "SFW_STM32_CUBEMX_DIR": "${sourceDir}/external/cubemx/generic"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "stm32-debug",
+      "inherits": "stm32-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "stm32-release",
+      "inherits": "stm32-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_FLAGS_RELEASE": "-O0 -DNDEBUG",
+        "CMAKE_CXX_FLAGS_RELEASE": "-O0 -DNDEBUG"
+      }
+    },
+    {
+      "name": "stm32-release-o2",
+      "inherits": "stm32-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_FLAGS_RELEASE": "-O2 -DNDEBUG",
+        "CMAKE_CXX_FLAGS_RELEASE": "-O2 -DNDEBUG"
+      }
+    },
+    {
+      "name": "stm32-release-o3",
+      "inherits": "stm32-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG",
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "build-stm32-debug",
+      "configurePreset": "stm32-debug"
+    },
+    {
+      "name": "build-stm32-release",
+      "configurePreset": "stm32-release"
+    },
+    {
+      "name": "build-stm32-release-o2",
+      "configurePreset": "stm32-release-o2"
+    },
+    {
+      "name": "build-stm32-release-o3",
+      "configurePreset": "stm32-release-o3"
+    }
+  ]
+}

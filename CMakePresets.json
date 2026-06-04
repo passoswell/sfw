@@ -6,6 +6,7 @@
     "patch": 0
   },
   "include": [
-    "cmake_presets/linux.json"
+    "cmake_presets/linux.json",
+    "cmake_presets/stm32.json"
   ]
 }

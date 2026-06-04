@@ -11,6 +11,13 @@
 #                  Header #include directives are computed relative to this dir.
 #   HEADERS      - Absolute paths to the headers to lint (variadic).
 function(add_lint_anchor TARGET_NAME INCLUDE_DIR)
+  # if(SFW_PLATFORM STREQUAL "STM32")
+  #   set(ANCHOR_CPP ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}.cpp)
+  #   file(WRITE "${ANCHOR_CPP}" "// Copyright (c) 2026 sfw contributors. All rights reserved.\n")
+  #   add_library(${TARGET_NAME} STATIC "${ANCHOR_CPP}")
+  #   return()
+  # endif()
+
   set(HEADERS ${ARGN})
 
   set(ANCHOR_CPP ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}.cpp)

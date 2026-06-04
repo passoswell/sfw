@@ -10,6 +10,11 @@ function(enable_target_cppcheck TARGET_NAME)
             list(APPEND ABS_SOURCES ${SRC})
         endforeach()
 
+        set(SFW_CPPCHECK_EXCLUDES "")
+        if(SFW_PLATFORM STREQUAL "STM32" AND NOT SFW_STM32_CUBEMX_DIR STREQUAL "")
+            list(APPEND SFW_CPPCHECK_EXCLUDES -i${SFW_STM32_CUBEMX_DIR})
+        endif()
+
         set(CPPCHECK_ARGS
             --enable=all
             --error-exitcode=1
@@ -18,6 +23,7 @@ function(enable_target_cppcheck TARGET_NAME)
             --suppress=unusedFunction
             --std=c++${CMAKE_CXX_STANDARD}
             --project=${CMAKE_BINARY_DIR}/compile_commands.json
+            ${SFW_CPPCHECK_EXCLUDES}
             ${ABS_SOURCES})
 
         add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
