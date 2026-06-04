@@ -9,6 +9,7 @@
 #include "device/serial_eeprom/interface/serial_eeprom_transport_interface.hpp"
 #include "hal_interface/error_code.hpp"
 #include "hal_interface/memory.hpp"
+#include "hal_interface/software_timer.hpp"
 
 namespace sfw::device::serial_eeprom {
 
@@ -35,9 +36,11 @@ class SerialEeprom final : public hal_interface::Memory {
    * @brief Constructs a generic serial EEPROM adapter.
    *
    * @param[in] transport Transport used for low-level bus transfers.
+   * @param[in] timer Software timer used for overall operation deadlines.
    * @param[in] metadata EEPROM geometry and timing metadata.
    */
   SerialEeprom(SerialEepromTransportInterface& transport,
+               hal_interface::SoftwareTimer& timer,
                const hal_interface::MemoryMetadata& metadata,
                uint8_t erased_value = 0xFFU);  // NOLINT
 
@@ -99,6 +102,9 @@ class SerialEeprom final : public hal_interface::Memory {
    * @retval hal_interface::ErrorCode::kError Transport or state error.
    */
   hal_interface::ErrorCode Read(uint64_t start_address,
+                                std::span<uint8_t> buffer) override;
+
+  hal_interface::ErrorCode Read(uint64_t start_address,
                                 std::span<uint8_t> buffer,
                                 uint32_t timeout_ms) override;
 
@@ -118,6 +124,9 @@ class SerialEeprom final : public hal_interface::Memory {
    * @retval hal_interface::ErrorCode::kError Alignment, transport, or state
    * error.
    */
+  hal_interface::ErrorCode Write(uint64_t start_address,
+                                 std::span<const uint8_t> buffer) override;
+
   hal_interface::ErrorCode Write(uint64_t start_address,
                                  std::span<const uint8_t> buffer,
                                  uint32_t timeout_ms) override;
@@ -141,6 +150,8 @@ class SerialEeprom final : public hal_interface::Memory {
    * @retval hal_interface::ErrorCode::kTimeout Transfer timed out.
    * @retval hal_interface::ErrorCode::kError Transport or state error.
    */
+  hal_interface::ErrorCode EraseBlock(uint64_t address_within_sector) override;
+
   hal_interface::ErrorCode EraseBlock(uint64_t address_within_sector,
                                       uint32_t timeout_ms) override;
 
@@ -159,6 +170,8 @@ class SerialEeprom final : public hal_interface::Memory {
    * @retval hal_interface::ErrorCode::kTimeout Transfer timed out.
    * @retval hal_interface::ErrorCode::kError Transport or state error.
    */
+  hal_interface::ErrorCode EraseAllMemory() override;
+
   hal_interface::ErrorCode EraseAllMemory(uint32_t timeout_ms) override;
 
   /**
@@ -176,8 +189,22 @@ class SerialEeprom final : public hal_interface::Memory {
   [[nodiscard]] uint32_t ResolveReadChunkSize(uint64_t remaining) const;
   [[nodiscard]] uint32_t ResolveWriteChunkSize(uint64_t current_address,
                                                uint64_t remaining) const;
+  [[nodiscard]] uint32_t ComputeDefaultReadTimeoutMs(uint64_t byte_count) const;
+  [[nodiscard]] uint32_t ComputeDefaultWriteTimeoutMs(
+      uint64_t start_address, uint64_t byte_count) const;
+  [[nodiscard]] uint32_t ComputeDefaultEraseBlockTimeoutMs() const;
+  [[nodiscard]] uint32_t ComputeDefaultEraseAllTimeoutMs() const;
+  [[nodiscard]] hal_interface::ErrorCode StartOperationTimer(
+      uint32_t timeout_ms) const;
+  [[nodiscard]] hal_interface::ErrorCode GetRemainingTimeoutMs(
+      uint32_t& timeout_ms) const;
+  [[nodiscard]] static uint32_t SerialEepromCeilDivU64ToU32(uint64_t value,
+                                                            uint64_t divisor);
+  [[nodiscard]] static uint32_t SerialEepromSaturatingAddU32(uint32_t lhs,
+                                                             uint32_t rhs);
 
   SerialEepromTransportInterface& transport_;
+  hal_interface::SoftwareTimer& timer_;
   hal_interface::MemoryMetadata metadata_{};
   uint8_t erased_value_{kDefaultErasedValue};
   bool initialized_{false};
@@ -187,6 +214,9 @@ class SerialEeprom final : public hal_interface::Memory {
   static constexpr uint8_t kMaxAddressBits{32U};
   static constexpr uint8_t kDefaultErasedValue{0xFFU};
   static constexpr std::size_t kEraseBufferSizeBytes{32U};
+  static constexpr uint32_t kMinimumOperationTimeoutMs{1U};
+  static constexpr uint32_t kPerTransferBudgetMs{5U};
+  static constexpr uint32_t kOperationMarginMs{2U};
 };
 
 }  // namespace sfw::device::serial_eeprom

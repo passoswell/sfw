@@ -46,8 +46,8 @@ class SerialEepromI2cTransport final : public SerialEepromTransportInterface {
   SerialEepromI2cTransport(hal_interface::I2cController& i2c,
                            uint16_t target_address, bool is_10bit_address,
                            hal_interface::SoftwareTimer& timer,
-                           uint32_t ready_poll_interval_ms,
-                           uint32_t ready_poll_attempt_timeout_ms);
+                           uint32_t ready_poll_interval_ms = 1U,
+                           uint32_t ready_poll_attempt_timeout_ms = 1U);
 
   SerialEepromI2cTransport(const SerialEepromI2cTransport&) = delete;
   SerialEepromI2cTransport& operator=(const SerialEepromI2cTransport&) = delete;

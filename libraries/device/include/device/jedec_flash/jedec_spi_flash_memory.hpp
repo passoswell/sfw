@@ -9,6 +9,7 @@
 #include "device/jedec_flash/jedec_spi_flash.hpp"
 #include "hal_interface/error_code.hpp"
 #include "hal_interface/memory.hpp"
+#include "hal_interface/software_timer.hpp"
 
 namespace sfw::device::jedec_flash {
 
@@ -40,16 +41,20 @@ class JedecSpiFlashMemory final : public hal_interface::Memory {
    * by reading the flash device's identification and configuration registers.
    *
    * @param[in] flash_device Low-level JEDEC SPI flash transport.
+   * @param[in] timer Software timer used for overall operation deadlines.
    */
-  explicit JedecSpiFlashMemory(JedecSpiFlash& flash_device);
+  explicit JedecSpiFlashMemory(JedecSpiFlash& flash_device,
+                               hal_interface::SoftwareTimer& timer);
 
   /**
    * @brief Constructs a JEDEC SPI flash memory adapter.
    *
    * @param[in] flash_device Low-level JEDEC SPI flash transport.
+   * @param[in] timer Software timer used for overall operation deadlines.
    * @param[in] metadata Geometry and timing metadata for this memory target.
    */
   JedecSpiFlashMemory(JedecSpiFlash& flash_device,
+                      hal_interface::SoftwareTimer& timer,
                       const hal_interface::MemoryMetadata& metadata);
 
   JedecSpiFlashMemory(const JedecSpiFlashMemory&) = delete;
@@ -102,6 +107,9 @@ class JedecSpiFlashMemory final : public hal_interface::Memory {
    * @retval hal_interface::ErrorCode::kError Invalid range or I/O failure.
    */
   hal_interface::ErrorCode Read(uint64_t start_address,
+                                std::span<uint8_t> buffer) override;
+
+  hal_interface::ErrorCode Read(uint64_t start_address,
                                 std::span<uint8_t> buffer,
                                 uint32_t timeout_ms) override;
 
@@ -117,6 +125,9 @@ class JedecSpiFlashMemory final : public hal_interface::Memory {
    * I/O failure.
    */
   hal_interface::ErrorCode Write(uint64_t start_address,
+                                 std::span<const uint8_t> buffer) override;
+
+  hal_interface::ErrorCode Write(uint64_t start_address,
                                  std::span<const uint8_t> buffer,
                                  uint32_t timeout_ms) override;
 
@@ -129,6 +140,8 @@ class JedecSpiFlashMemory final : public hal_interface::Memory {
    * @retval hal_interface::ErrorCode::kTimeout Erase exceeded timeout.
    * @retval hal_interface::ErrorCode::kError Invalid range or I/O failure.
    */
+  hal_interface::ErrorCode EraseBlock(uint64_t address_within_sector) override;
+
   hal_interface::ErrorCode EraseBlock(uint64_t address_within_sector,
                                       uint32_t timeout_ms) override;
 
@@ -140,6 +153,8 @@ class JedecSpiFlashMemory final : public hal_interface::Memory {
    * @retval hal_interface::ErrorCode::kTimeout Erase exceeded timeout.
    * @retval hal_interface::ErrorCode::kError I/O failure.
    */
+  hal_interface::ErrorCode EraseAllMemory() override;
+
   hal_interface::ErrorCode EraseAllMemory(uint32_t timeout_ms) override;
 
   /**
@@ -162,6 +177,15 @@ class JedecSpiFlashMemory final : public hal_interface::Memory {
   [[nodiscard]] uint32_t ResolveReadChunkSize(uint64_t remaining) const;
   [[nodiscard]] uint32_t ResolveWriteChunkSize(uint64_t current_address,
                                                uint64_t remaining) const;
+  [[nodiscard]] uint32_t ComputeDefaultReadTimeoutMs(uint64_t byte_count) const;
+  [[nodiscard]] uint32_t ComputeDefaultWriteTimeoutMs(
+      uint64_t start_address, uint64_t byte_count) const;
+  [[nodiscard]] uint32_t ComputeDefaultEraseBlockTimeoutMs() const;
+  [[nodiscard]] uint32_t ComputeDefaultEraseAllTimeoutMs() const;
+  [[nodiscard]] hal_interface::ErrorCode StartOperationTimer(
+      uint32_t timeout_ms) const;
+  [[nodiscard]] hal_interface::ErrorCode GetRemainingTimeoutMs(
+      uint32_t& timeout_ms) const;
   [[nodiscard]] bool PopulateMetadataFromJedecInfo();
 
   [[nodiscard]] static uint32_t SaturateToU32(uint64_t value);
@@ -181,8 +205,13 @@ class JedecSpiFlashMemory final : public hal_interface::Memory {
       const jedec_flash::Info& info);
   [[nodiscard]] static uint32_t DecodePageSizeBytes(
       const jedec_flash::Info& info);
+  [[nodiscard]] static uint32_t JedecSpiFlashMemoryCeilDivU64ToU32(
+      uint64_t value, uint64_t divisor);
+  [[nodiscard]] static uint32_t JedecSpiFlashMemorySaturatingAddU32(
+      uint32_t lhs, uint32_t rhs);
 
   JedecSpiFlash& flash_device_;
+  hal_interface::SoftwareTimer& timer_;
   hal_interface::MemoryMetadata metadata_{};
   bool has_user_metadata_;
   bool initialized_{false};
@@ -220,6 +249,9 @@ class JedecSpiFlashMemory final : public hal_interface::Memory {
   static constexpr uint64_t kPageProgramScaleLargeUs{64U};
   static constexpr uint64_t kChipEraseTimeUnit4SInMs{4U * kMsPerSecond};
   static constexpr uint64_t kChipEraseTimeUnit64SInMs{64U * kMsPerSecond};
+  static constexpr uint32_t kMinimumOperationTimeoutMs{1U};
+  static constexpr uint32_t kPerTransferBudgetMs{5U};
+  static constexpr uint32_t kOperationMarginMs{2U};
 };
 
 }  // namespace sfw::device::jedec_flash

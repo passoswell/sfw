@@ -113,6 +113,25 @@ class Memory {
   virtual bool IsInitialized() = 0;
 
   /**
+   * @brief Reads bytes using an implementation-defined timeout.
+   *
+   * This overload uses a timeout derived from the memory metadata and the
+   * requested transfer size. The derived timeout covers the whole read
+   * operation, including any internal chunking performed by the
+   * implementation.
+   *
+   * @param[in]  start_address Byte address within the memory to begin reading
+   * from.
+   * @param[out] buffer        Destination span that receives the read bytes.
+   * @retval ErrorCode::kOk      All bytes were read successfully.
+   * @retval ErrorCode::kTimeout The operation did not complete within the
+   * derived timeout.
+   * @retval ErrorCode::kError   An address out-of-range or communication error
+   * occurred.
+   */
+  virtual ErrorCode Read(uint64_t start_address, std::span<uint8_t> buffer) = 0;
+
+  /**
    * @brief Reads bytes from the memory starting at @p start_address.
    *
    * Reads @p buffer.size() consecutive bytes beginning at @p start_address
@@ -123,6 +142,8 @@ class Memory {
    * For the caller, @p start_address always starts from zero, a relative
    * address. The implementation is responsible for adding the base_address
    * offset from MemoryMetadata::base_address.
+   * The @p timeout_ms value is the budget for the full operation, not for
+   * each internal chunk.
    *
    * @param[in]  start_address Byte address within the memory to begin reading
    * from.
@@ -139,6 +160,26 @@ class Memory {
                          uint32_t timeout_ms) = 0;
 
   /**
+   * @brief Writes bytes using an implementation-defined timeout.
+   *
+   * This overload uses a timeout derived from the memory metadata and the
+   * requested transfer size. The derived timeout covers the whole write
+   * operation, including internal ready polling and any chunking performed by
+   * the implementation.
+   *
+   * @param[in] start_address Byte address within the memory to begin writing
+   * to.
+   * @param[in] buffer        Source span containing the bytes to write.
+   * @retval ErrorCode::kOk      All bytes were written successfully.
+   * @retval ErrorCode::kTimeout The operation did not complete within the
+   * derived timeout.
+   * @retval ErrorCode::kError   An alignment violation, out-of-range address,
+   * or communication error occurred.
+   */
+  virtual ErrorCode Write(uint64_t start_address,
+                          std::span<const uint8_t> buffer) = 0;
+
+  /**
    * @brief Writes bytes from @p buffer to the memory starting at
    * @p start_address.
    *
@@ -153,6 +194,8 @@ class Memory {
    * For the caller, @p start_address always starts from zero, a relative
    * address. The implementation is responsible for adding the base_address
    * offset from MemoryMetadata::base_address.
+   * The @p timeout_ms value is the budget for the full operation, not for
+   * each internal write command or ready-poll attempt.
    *
    * @param[in] start_address Byte address within the memory to begin writing
    * to.
@@ -170,6 +213,21 @@ class Memory {
                           uint32_t timeout_ms) = 0;
 
   /**
+   * @brief Erases one block using an implementation-defined timeout.
+   *
+   * This overload uses a timeout derived from the memory metadata. The
+   * derived timeout covers the whole block erase operation.
+   *
+   * @param[in] address_within_sector Any byte address that falls within the
+   * target sector.
+   * @retval ErrorCode::kOk      The sector was erased successfully.
+   * @retval ErrorCode::kTimeout The operation did not complete within the
+   * derived timeout.
+   * @retval ErrorCode::kError   A hardware or communication error occurred.
+   */
+  virtual ErrorCode EraseBlock(uint64_t address_within_sector) = 0;
+
+  /**
    * @brief Erases the sector that contains @p address_within_sector.
    *
    * The address does not need to be sector-aligned; the implementation
@@ -178,6 +236,7 @@ class Memory {
    * dependent on the device technology. If the device technology does not
    * limit which value will be held after an erase, the implementation must
    * default to 0xFF.
+   * The @p timeout_ms value is the budget for the full erase operation.
    *
    * @param[in] address_within_sector Any byte address that falls within the
    * target sector.
@@ -192,6 +251,19 @@ class Memory {
                                uint32_t timeout_ms) = 0;
 
   /**
+   * @brief Erases the full memory using an implementation-defined timeout.
+   *
+   * This overload uses a timeout derived from the memory metadata. The
+   * derived timeout covers the whole full-memory erase operation.
+   *
+   * @retval ErrorCode::kOk      The memory was erased successfully.
+   * @retval ErrorCode::kTimeout The operation did not complete within the
+   * derived timeout.
+   * @retval ErrorCode::kError   A hardware or communication error occurred.
+   */
+  virtual ErrorCode EraseAllMemory() = 0;
+
+  /**
    * @brief Erases the entire memory device.
    *
    * After a successful erase, all bytes read as the erased value. The value a
@@ -200,6 +272,7 @@ class Memory {
    * held after an erase, the implementation must default to 0xFF.
    * This operation may take significantly longer than erasing individual
    * sectors; consult MemoryMetadata::maximum_memory_erase_time_ms.
+   * The @p timeout_ms value is the budget for the full erase operation.
    *
    * @param[in] timeout_ms Maximum time to wait for the full-chip erase, in
    * milliseconds.
@@ -214,7 +287,10 @@ class Memory {
    * @brief Returns the geometry and timing metadata for this memory device.
    *
    * The returned structure is valid for the lifetime of the object and does
-   * not change between calls.
+   * not change between calls. These timing fields describe device-internal
+   * timing limits from configuration data or the datasheet. They do not
+   * include shared-bus arbitration or scheduler delays outside the memory
+   * implementation.
    *
    * @retval MemoryMetadata A structure describing the memory's capacity,
    *                        alignment requirements, and timing constraints.

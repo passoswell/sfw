@@ -8,8 +8,17 @@
 namespace sfw::device::jedec_flash {
 
 JedecSpiFlashMemory::JedecSpiFlashMemory(
-    JedecSpiFlash& flash_device, const hal_interface::MemoryMetadata& metadata)
-  : flash_device_(flash_device), metadata_(metadata), has_user_metadata_(true) {
+    JedecSpiFlash& flash_device, hal_interface::SoftwareTimer& timer,
+    const hal_interface::MemoryMetadata& metadata)
+  : flash_device_(flash_device)
+  , timer_(timer)
+  , metadata_(metadata)
+  , has_user_metadata_(true) {
+}
+
+JedecSpiFlashMemory::JedecSpiFlashMemory(JedecSpiFlash& flash_device,
+                                         hal_interface::SoftwareTimer& timer)
+  : flash_device_(flash_device), timer_(timer), has_user_metadata_(false) {
 }
 
 JedecSpiFlashMemory::~JedecSpiFlashMemory() {
@@ -25,6 +34,11 @@ hal_interface::ErrorCode JedecSpiFlashMemory::Initialize() {
   const hal_interface::ErrorCode Result = flash_device_.Initialize();
   if (Result != hal_interface::ErrorCode::kOk) {
     return Result;
+  }
+
+  const hal_interface::ErrorCode TimerResult = timer_.Initialize();
+  if (TimerResult != hal_interface::ErrorCode::kOk) {
+    return TimerResult;
   }
 
   if (!has_user_metadata_) {
@@ -47,12 +61,24 @@ hal_interface::ErrorCode JedecSpiFlashMemory::Deinitialize() {
     return Result;
   }
 
+  const hal_interface::ErrorCode TimerResult = timer_.Deinitialize();
+  if (TimerResult != hal_interface::ErrorCode::kOk) {
+    return TimerResult;
+  }
+
   initialized_ = false;
   return hal_interface::ErrorCode::kOk;
 }
 
 bool JedecSpiFlashMemory::IsInitialized() {
   return initialized_;
+}
+
+hal_interface::ErrorCode JedecSpiFlashMemory::Read(uint64_t start_address,
+                                                   std::span<uint8_t> buffer) {
+  return Read(
+      start_address, buffer,
+      ComputeDefaultReadTimeoutMs(static_cast<uint64_t>(buffer.size())));
 }
 
 hal_interface::ErrorCode JedecSpiFlashMemory::Read(uint64_t start_address,
@@ -72,15 +98,25 @@ hal_interface::ErrorCode JedecSpiFlashMemory::Read(uint64_t start_address,
     return hal_interface::ErrorCode::kError;
   }
 
-  uint64_t offset = 0U;
+  hal_interface::ErrorCode result = StartOperationTimer(timeout_ms);
+  if (result != hal_interface::ErrorCode::kOk) {
+    return result;
+  }
+
+  uint64_t offset = {0U};
+  uint32_t remaining_timeout_ms = {0U};
   while (offset < buffer.size()) {
+    result = GetRemainingTimeoutMs(remaining_timeout_ms);
+    if (result != hal_interface::ErrorCode::kOk) {
+      return result;
+    }
+
     uint64_t current_address = start_address + offset;
     uint64_t remaining = static_cast<uint64_t>(buffer.size()) - offset;
     uint32_t chunk_size = ResolveReadChunkSize(remaining);
 
     uint32_t device_address{};
-    hal_interface::ErrorCode result =
-        TranslateAddress(current_address, device_address);
+    result = TranslateAddress(current_address, device_address);
     if (result != hal_interface::ErrorCode::kOk) {
       return result;
     }
@@ -88,7 +124,7 @@ hal_interface::ErrorCode JedecSpiFlashMemory::Read(uint64_t start_address,
     std::span<uint8_t> chunk = buffer.subspan(
         static_cast<std::span<uint8_t>::size_type>(offset), chunk_size);
     result = flash_device_.ReadData(device_address, kAddressSizeBytes, chunk,
-                                    timeout_ms);
+                                    remaining_timeout_ms);
     if (result != hal_interface::ErrorCode::kOk) {
       return result;
     }
@@ -97,6 +133,13 @@ hal_interface::ErrorCode JedecSpiFlashMemory::Read(uint64_t start_address,
   }
 
   return hal_interface::ErrorCode::kOk;
+}
+
+hal_interface::ErrorCode JedecSpiFlashMemory::Write(
+    uint64_t start_address, std::span<const uint8_t> buffer) {
+  return Write(start_address, buffer,
+               ComputeDefaultWriteTimeoutMs(
+                   start_address, static_cast<uint64_t>(buffer.size())));
 }
 
 hal_interface::ErrorCode JedecSpiFlashMemory::Write(
@@ -126,31 +169,46 @@ hal_interface::ErrorCode JedecSpiFlashMemory::Write(
     return hal_interface::ErrorCode::kError;
   }
 
+  hal_interface::ErrorCode result = StartOperationTimer(timeout_ms);
+  if (result != hal_interface::ErrorCode::kOk) {
+    return result;
+  }
+
   uint64_t offset = 0U;
   while (offset < buffer.size()) {
+    uint32_t remaining_timeout_ms = 0U;
+    result = GetRemainingTimeoutMs(remaining_timeout_ms);
+    if (result != hal_interface::ErrorCode::kOk) {
+      return result;
+    }
+
     const uint64_t CurrentAddress = start_address + offset;
     const uint64_t Remaining = static_cast<uint64_t>(buffer.size()) - offset;
     const uint32_t ChunkSize = ResolveWriteChunkSize(CurrentAddress, Remaining);
 
     uint32_t device_address{};
-    const hal_interface::ErrorCode TranslateResult =
-        TranslateAddress(CurrentAddress, device_address);
-    if (TranslateResult != hal_interface::ErrorCode::kOk) {
-      return TranslateResult;
+    result = TranslateAddress(CurrentAddress, device_address);
+    if (result != hal_interface::ErrorCode::kOk) {
+      return result;
     }
 
     const std::span<const uint8_t> Chunk = buffer.subspan(
         static_cast<std::span<const uint8_t>::size_type>(offset), ChunkSize);
-    const hal_interface::ErrorCode WriteResult = flash_device_.ProgramPage(
-        device_address, kAddressSizeBytes, Chunk, timeout_ms);
-    if (WriteResult != hal_interface::ErrorCode::kOk) {
-      return WriteResult;
+    result = flash_device_.ProgramPage(device_address, kAddressSizeBytes, Chunk,
+                                       remaining_timeout_ms);
+    if (result != hal_interface::ErrorCode::kOk) {
+      return result;
     }
 
     offset += ChunkSize;
   }
 
   return hal_interface::ErrorCode::kOk;
+}
+
+hal_interface::ErrorCode JedecSpiFlashMemory::EraseBlock(
+    uint64_t address_within_sector) {
+  return EraseBlock(address_within_sector, ComputeDefaultEraseBlockTimeoutMs());
 }
 
 hal_interface::ErrorCode JedecSpiFlashMemory::EraseBlock(
@@ -177,6 +235,10 @@ hal_interface::ErrorCode JedecSpiFlashMemory::EraseBlock(
 
   return flash_device_.EraseSector(static_cast<uint32_t>(SectorStart),
                                    kAddressSizeBytes, timeout_ms);
+}
+
+hal_interface::ErrorCode JedecSpiFlashMemory::EraseAllMemory() {
+  return EraseAllMemory(ComputeDefaultEraseAllTimeoutMs());
 }
 
 hal_interface::ErrorCode JedecSpiFlashMemory::EraseAllMemory(
@@ -241,6 +303,99 @@ uint32_t JedecSpiFlashMemory::ResolveWriteChunkSize(uint64_t current_address,
 
   const uint64_t MaxChunk = std::min<uint64_t>(PageSize, remaining);
   return static_cast<uint32_t>(std::min<uint64_t>(MaxChunk, BytesToPageEnd));
+}
+
+uint32_t JedecSpiFlashMemory::ComputeDefaultReadTimeoutMs(
+    uint64_t byte_count) const {
+  if (byte_count == 0U) {
+    return kMinimumOperationTimeoutMs;
+  }
+
+  const uint64_t ReadChunkSize =
+      metadata_.read_block_size == 0U ? byte_count : metadata_.read_block_size;
+  const uint32_t ChunkCount =
+      JedecSpiFlashMemoryCeilDivU64ToU32(byte_count, ReadChunkSize);
+  uint32_t timeout_ms = JedecSpiFlashMemorySaturatingAddU32(
+      ChunkCount * kPerTransferBudgetMs, kOperationMarginMs);
+  if (timeout_ms < kMinimumOperationTimeoutMs) {
+    timeout_ms = kMinimumOperationTimeoutMs;
+  }
+
+  return timeout_ms;
+}
+
+uint32_t JedecSpiFlashMemory::ComputeDefaultWriteTimeoutMs(
+    uint64_t start_address, uint64_t byte_count) const {
+  (void)start_address;
+  if (byte_count == 0U) {
+    return kMinimumOperationTimeoutMs;
+  }
+
+  const uint32_t WriteCycleMs = std::max<uint32_t>(
+      kMinimumOperationTimeoutMs, JedecSpiFlashMemoryCeilDivU64ToU32(
+                                      metadata_.maximum_write_time_us, 1000U));
+  uint32_t write_blocks{};
+  uint32_t timeout_ms{};
+  uint32_t marging_ms{};
+
+  write_blocks = (byte_count / metadata_.write_block_size) + 1U;
+  timeout_ms = (write_blocks * WriteCycleMs);
+  marging_ms = write_blocks * kPerTransferBudgetMs;
+
+  if (timeout_ms >= UINT32_MAX - marging_ms) {
+    timeout_ms = UINT32_MAX;
+  } else {
+    timeout_ms += marging_ms;
+  }
+
+  if (timeout_ms < kMinimumOperationTimeoutMs) {
+    timeout_ms = kMinimumOperationTimeoutMs;
+  }
+
+  return timeout_ms;
+}
+
+uint32_t JedecSpiFlashMemory::ComputeDefaultEraseBlockTimeoutMs() const {
+  if (metadata_.maximum_sector_erase_time_ms == 0U) {
+    return JedecSpiFlashMemorySaturatingAddU32(kPerTransferBudgetMs,
+                                               kOperationMarginMs);
+  }
+
+  return JedecSpiFlashMemorySaturatingAddU32(
+      metadata_.maximum_sector_erase_time_ms,
+      JedecSpiFlashMemorySaturatingAddU32(kPerTransferBudgetMs,
+                                          kOperationMarginMs));
+}
+
+uint32_t JedecSpiFlashMemory::ComputeDefaultEraseAllTimeoutMs() const {
+  if (metadata_.maximum_memory_erase_time_ms == 0U) {
+    return JedecSpiFlashMemorySaturatingAddU32(kPerTransferBudgetMs,
+                                               kOperationMarginMs);
+  }
+
+  return JedecSpiFlashMemorySaturatingAddU32(
+      metadata_.maximum_memory_erase_time_ms,
+      JedecSpiFlashMemorySaturatingAddU32(kPerTransferBudgetMs,
+                                          kOperationMarginMs));
+}
+
+hal_interface::ErrorCode JedecSpiFlashMemory::StartOperationTimer(
+    uint32_t timeout_ms) const {
+  return timer_.Start(timeout_ms, hal_interface::TimeUnit::kMilliseconds);
+}
+
+hal_interface::ErrorCode JedecSpiFlashMemory::GetRemainingTimeoutMs(
+    uint32_t& timeout_ms) const {
+  const hal_interface::ErrorCode Result = timer_.GetTimeUntilExpiration(
+      timeout_ms, hal_interface::TimeUnit::kMilliseconds);
+  if (Result != hal_interface::ErrorCode::kOk) {
+    return Result;
+  }
+  if (timeout_ms == 0U) {
+    return hal_interface::ErrorCode::kTimeout;
+  }
+
+  return hal_interface::ErrorCode::kOk;
 }
 
 bool JedecSpiFlashMemory::PopulateMetadataFromJedecInfo() {
@@ -477,8 +632,27 @@ uint32_t JedecSpiFlashMemory::DecodePageSizeBytes(
   return static_cast<uint32_t>(kOneByteValue << Exponent);
 }
 
-JedecSpiFlashMemory::JedecSpiFlashMemory(JedecSpiFlash& flash_device)
-  : flash_device_(flash_device), has_user_metadata_(false) {
+uint32_t JedecSpiFlashMemory::JedecSpiFlashMemoryCeilDivU64ToU32(
+    uint64_t value, uint64_t divisor) {
+  if (divisor == 0U) {
+    return 0U;
+  }
+
+  const uint64_t Quotient = (value + divisor - 1U) / divisor;
+  if (Quotient > std::numeric_limits<uint32_t>::max()) {
+    return std::numeric_limits<uint32_t>::max();
+  }
+
+  return static_cast<uint32_t>(Quotient);
+}
+
+uint32_t JedecSpiFlashMemory::JedecSpiFlashMemorySaturatingAddU32(
+    uint32_t lhs, uint32_t rhs) {
+  if (rhs > (std::numeric_limits<uint32_t>::max() - lhs)) {
+    return std::numeric_limits<uint32_t>::max();
+  }
+
+  return static_cast<uint32_t>(lhs + rhs);
 }
 
 }  // namespace sfw::device::jedec_flash
