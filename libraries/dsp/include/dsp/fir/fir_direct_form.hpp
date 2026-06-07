@@ -12,7 +12,7 @@
 namespace sfw::dsp::fir {
 
 /**
- * @brief Direct Form FIR filter using a circular sample buffer.
+ * @brief Direct form FIR filter using a circular sample buffer.
  *
  * Implements:
  *
@@ -84,20 +84,25 @@ class DirectForm final : public sfw::dsp::interface::Filter<SampleType> {
     }
 
     for (std::size_t sample = 0; sample < input.size(); ++sample) {
+      std::size_t sample_index{};
       if constexpr (kReverseCoefficients) {
         ++head_;
         if (head_ >= kTapCount) {
           head_ = 0;
+        }
+        sample_index = head_ + 1;
+        if (sample_index >= kTapCount) {
+          sample_index = 0;
         }
       } else {
         if (head_ == 0) {
           head_ = kTapCount;
         }
         --head_;
+        sample_index = head_;
       }
 
       samples_buffer_.at(head_) = input[sample];
-      std::size_t sample_index = head_;
       SampleType accumulator{};
 
       for (std::size_t tap = 0; tap < kTapCount; ++tap) {
