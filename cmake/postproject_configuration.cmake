@@ -4,7 +4,7 @@ function(sfw_configure_platform_executable target_name)
 	endif()
 
 	if(SFW_PLATFORM STREQUAL "Linux")
-		target_link_libraries(${target_name} PUBLIC hal_interface hal_linux device)
+		target_link_libraries(${target_name} PUBLIC hal_interface hal_linux device dsp)
 		add_custom_command(TARGET ${target_name} POST_BUILD
 			COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${target_name}>
 				${CMAKE_BINARY_DIR}/${target_name}.firmware.elf
@@ -14,7 +14,7 @@ function(sfw_configure_platform_executable target_name)
 
 	if(SFW_PLATFORM STREQUAL "STM32")
 		set_target_properties(${target_name} PROPERTIES SUFFIX ".elf")
-		target_link_libraries(${target_name} PUBLIC hal_interface hal_stm32 device)
+		target_link_libraries(${target_name} PUBLIC hal_interface hal_stm32 device dsp)
 		target_compile_definitions(${target_name} PRIVATE SFW_STM32_BUILD=1)
 		target_link_options(${target_name} PRIVATE
 			-Wl,-Map=${CMAKE_CURRENT_BINARY_DIR}/${target_name}.map)

@@ -1,12 +1,11 @@
 // Copyright (c) 2026 sfw contributors. All rights reserved.
 
-#ifndef HAL_INTERFACE_FILTER_HPP
-#define HAL_INTERFACE_FILTER_HPP
+#ifndef DSP_INTERFACE_FILTER_HPP
+#define DSP_INTERFACE_FILTER_HPP
 
 #include <span>
 
-namespace sfw::dsp::interface
-{
+namespace sfw::dsp::interface {
 
 /**
  * @brief Base interface for signal filters.
@@ -28,10 +27,9 @@ namespace sfw::dsp::interface
  *
  * @tparam SampleType Sample type used by the filter.
  */
-template<typename SampleType>
-class Filter
-{
-public:
+template <typename SampleType>
+class Filter {
+ public:
   Filter() = default;
   Filter(const Filter&) = default;
   Filter& operator=(const Filter&) = default;
@@ -54,19 +52,23 @@ public:
    * @retval true Success.
    * @retval false Processing failed.
    */
-  virtual bool process(
-    std::span<const SampleType> input,
-    std::span<SampleType> output) = 0;
+  virtual bool Process(std::span<const SampleType> input,
+                       std::span<SampleType> output) = 0;
 
   /**
    * @brief Reset all internal filter states.
    *
-   * After calling reset(), the filter shall behave as if it
-   * had just been constructed.
+   * After calling reset(), the filter shall behave as if it had just been
+   * constructed.
+   * The @p initial_state is intended to be used to avoid transients on the
+   * initial filter response. The method should then compute the internal states
+   * values to match it.
+   *
+   * @param initial_state The value to initialize all internal states.
    */
-  virtual void reset() = 0;
+  virtual void Reset(SampleType initial_state) = 0;
 };
 
 }  // namespace sfw::dsp::interface
 
-#endif  // HAL_INTERFACE_FILTER_HPP
+#endif  // DSP_INTERFACE_FILTER_HPP

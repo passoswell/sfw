@@ -1,6 +1,7 @@
 
 add_subdirectory(hal_interface)
 add_subdirectory(device)
+add_subdirectory(dsp)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   add_subdirectory(hal_linux)
