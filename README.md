@@ -36,10 +36,16 @@ Common build tools:
 - GCC and G++ with C++20 support
 - pkg-config
 
+Linting tools required:
+- cppcheck
+- clang-tidy
+- clang-format
+
 Linux host packages typically required:
 - build-essential
 - libgpiod-dev (`>=1.0` and `<2.0`)
 - libi2c-dev
+- libpthread-stubs0-dev (usually covered by system toolchain)
 
 STM32 host requirements:
 - `SM32 CubeMX`

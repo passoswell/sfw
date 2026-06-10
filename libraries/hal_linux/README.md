@@ -49,6 +49,11 @@ Required build tools and libraries (Debian/Ubuntu):
 - `libi2c-dev`
 - `libpthread-stubs0-dev` (usually covered by system toolchain)
 
+Linting tools required:
+- `cppcheck`
+- `clang-tidy`
+- `clang-format`
+
 Useful runtime/debug tools:
 - `gpiod`
 - `i2c-tools`

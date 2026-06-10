@@ -34,6 +34,12 @@ Required STM32 tooling:
 - STM32CubeIDE or STM32CubeMX capable of generating CMake projects
 - `STM32_Programmer_CLI` (STM32CubeProgrammer)
 
+Linting tools required:
+- pkg-config
+- cppcheck
+- clang-tidy
+- clang-format
+
 Recommended for debug in this repository:
 - `ST-LINK_gdbserver`
 - `arm-none-eabi-gdb`
