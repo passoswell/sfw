@@ -69,6 +69,16 @@ class DirectForm final : public sfw::dsp::interface::Filter<SampleType> {
   }
 
   /**
+   * @brief Destructor
+   */
+  ~DirectForm() override = default;
+
+  DirectForm(const DirectForm&) = delete;
+  DirectForm& operator=(const DirectForm&) = delete;
+  DirectForm(DirectForm&&) = delete;
+  DirectForm& operator=(DirectForm&&) = delete;
+
+  /**
    * @brief Process a block of samples.
    *
    * @param input Input samples.

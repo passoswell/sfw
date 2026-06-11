@@ -7,6 +7,7 @@ set(DSP_HEADERS
   ${CMAKE_CURRENT_SOURCE_DIR}/include/dsp/interface/filter.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/dsp/fir/fir_direct_form.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/dsp/fir/fir_transposed_form.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/dsp/iir/iir_biquad.hpp
 )
 
 target_sources(dsp INTERFACE ${DSP_HEADERS})

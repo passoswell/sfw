@@ -74,6 +74,16 @@ class TransposedForm final : public sfw::dsp::interface::Filter<SampleType> {
   }
 
   /**
+   * @brief Destructor
+   */
+  ~TransposedForm() override = default;
+
+  TransposedForm(const TransposedForm&) = delete;
+  TransposedForm& operator=(const TransposedForm&) = delete;
+  TransposedForm(TransposedForm&&) = delete;
+  TransposedForm& operator=(TransposedForm&&) = delete;
+
+  /**
    * @brief Process a block of samples.
    *
    * @param input Input samples.
