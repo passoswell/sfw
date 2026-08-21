@@ -6,8 +6,15 @@ function(enable_target_clang_format TARGET_NAME)
             if(NOT IS_ABSOLUTE ${SRC})
                 set(SRC "${CMAKE_CURRENT_SOURCE_DIR}/${SRC}")
             endif()
-            list(APPEND ABS_SOURCES ${SRC})
+            if(NOT SRC MATCHES "^${CMAKE_SOURCE_DIR}/external/.*")
+                list(APPEND ABS_SOURCES ${SRC})
+            endif()
         endforeach()
+
+        if(NOT ABS_SOURCES)
+            message(STATUS "Skipping clang-format for ${TARGET_NAME}: no non-external sources.")
+            return()
+        endif()
 
         add_custom_target(format_${TARGET_NAME}
             COMMAND ${CLANG_FORMAT_EXE} -i --style=file ${ABS_SOURCES}
